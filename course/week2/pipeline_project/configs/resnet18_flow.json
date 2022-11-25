@@ -1,0 +1,17 @@
+{
+  "system": {
+    "data": {
+      "root": "./artifacts/data/mnist"
+    },
+    "model": {
+      "name": "resnet18",
+      "pretrain": 1
+    },
+    "optimizer": {
+      "max_epochs": 3,
+      "batch_size": 32,
+      "lr": 4e-3
+    },
+    "save_dir": "./artifacts/ckpts/resnet18_flow"
+  }
+}

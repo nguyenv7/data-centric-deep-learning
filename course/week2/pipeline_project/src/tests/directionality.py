@@ -148,7 +148,7 @@ class MNISTDirectionalityTest(BaseTest):
       preds_raw = torch.argmax(logits_raw, dim=1)
       preds_transformed = torch.argmax(logits_transformed, dim=1)
 
-      batch_metric = 0  # store metric here
+      batch_metric = torch.sum(preds_raw==preds_transformed).item()/ image_raw.size(0)  # store metric here
       # ================================
       # FILL ME OUT
       # 
