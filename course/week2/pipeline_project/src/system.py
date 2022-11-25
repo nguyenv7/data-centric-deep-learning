@@ -8,7 +8,7 @@ import torch.nn.functional as F
 from torch.utils.data import Subset, DataLoader
 
 import pytorch_lightning as pl
-from torchvision import datasets, transforms
+from torchvision import datasets, transforms, models
 
 
 class MNISTDataModule(pl.LightningDataModule):
@@ -107,6 +107,8 @@ class DigitClassifierSystem(pl.LightningModule):
         nn.ReLU(),
         nn.Linear(self.config.system.model.width, 10)
       )
+    elif self.config.system.model.name == 'resnet18':
+      model = models.resnet18(pretrained=self.config.system.model.pretrain)
 
     else:
       raise Exception(f"Model {self.config.system.model.name} not supported.")
@@ -114,7 +116,10 @@ class DigitClassifierSystem(pl.LightningModule):
     return model
 
   def forward(self, image):
-    image = image.view(image.size(0), -1)  # flatten the image
+    if self.config.system.model.name == 'resnet18':
+      image = image.repeat(1,3,1,1)
+    else:
+      image = image.view(image.size(0), -1)  # flatten the image
     logits = self.model(image)
     return logits
   
