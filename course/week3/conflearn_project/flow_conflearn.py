@@ -132,7 +132,26 @@ class TrainIdentifyReview(FlowSpec):
     kf = KFold(n_splits=3)    # create kfold splits
 
     for train_index, test_index in kf.split(X):
-      probs_ = None
+      X_train, y_train = X[train_index], y[train_index]
+      X_test, y_test = X[test_index], y[test_index]
+      
+      X_train = torch.from_numpy(X_train).float()
+      X_test = torch.from_numpy(X_test).float()
+      
+      y_train = torch.from_numpy(y_train)
+      y_test = torch.from_numpy(y_test)
+      
+      data_train, data_test = TensorDataset(X_train,y_train), TensorDataset(X_test, y_test)
+      train_dl = DataLoader(data_train, batch_size=self.config.train.optimizer.batch_size, shuffle=True)
+      test_dl = DataLoader(data_test, batch_size=self.config.train.optimizer.batch_size)
+      
+      system = SentimentClassifierSystem(self.config)
+      trainer = Trainer(max_epochs=self.config.train.optimizer.max_epochs)
+      
+      trainer.fit(system, train_dl)
+      
+      probs_ = trainer.predict(system, dataloaders = test_dl)
+      probs_ = torch.cat(probs_).squeeze(1).numpy()
       # ===============================================
       # FILL ME OUT
       # 
@@ -194,9 +213,10 @@ class TrainIdentifyReview(FlowSpec):
     """
     prob = np.asarray(self.all_df.prob)
     prob = np.stack([1 - prob, prob]).T
-  
+
+    labels = np.array(self.all_df.label.tolist())
     # rank label indices by issues
-    ranked_label_issues = None
+    ranked_label_issues = find_label_issues(labels, prob, return_indices_ranked_by="self_confidence")
     
     # =============================
     # FILL ME OUT
@@ -213,11 +233,11 @@ class TrainIdentifyReview(FlowSpec):
     # ranked_label_issues: List[int]
     # =============================
     assert ranked_label_issues is not None, "`ranked_label_issues` not defined."
-
     # save this to class
     self.issues = ranked_label_issues
     print(f'{len(ranked_label_issues)} label issues found.')
-
+    print(ranked_label_issues)
+    
     # overwrite label for all the entries in all_df
     for index in self.issues:
       label = self.all_df.loc[index, 'label']
@@ -309,6 +329,9 @@ class TrainIdentifyReview(FlowSpec):
     # dm.test_dataset.data = test slice of self.all_df
     # # ====================================
 
+    dm.train_dataset.data = self.all_df.iloc[0:train_size]
+    dm.dev_dataset.data = self.all_df.iloc[train_size:train_size+dev_size]
+    dm.test_dataset.data = self.all_df.iloc[train_size+dev_size:]
     # start from scratch
     system = SentimentClassifierSystem(self.config)
     trainer = Trainer(
