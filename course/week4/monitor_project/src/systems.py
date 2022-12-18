@@ -201,6 +201,10 @@ class RobustSentimentSystem(SentimentClassifierSystem):
     # loss: torch.Tensor (single element)
     # =================================
 
+    loss0 = torch.mean(loss[groups==0])
+    loss1 = torch.mean(loss[groups==1])
+    loss = torch.maximum(loss0, loss1)
+    
     with torch.no_grad():
       # Compute accuracy using the logits and labels
       preds = torch.round(torch.sigmoid(logits))

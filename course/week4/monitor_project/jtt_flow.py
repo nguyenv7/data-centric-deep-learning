@@ -64,7 +64,12 @@ class JustTrainTwice(FlowSpec):
     dl = DataLoader(ds, batch_size=self.config.system.optimizer.batch_size, 
       num_workers=self.config.system.optimizer.num_workers)
 
-    weights = None
+    preds = self.trainer.predict(self.system, dataloaders = dl)
+    preds = torch.cat(preds, dim=0).squeeze(1)
+    preds_labels = torch.round(preds)
+    true_labels = ds.get_labels()
+    
+    weights = 1 - (preds_labels == true_labels).float()
     # =============================
     # FILL ME OUT
     # 
@@ -132,7 +137,7 @@ class JustTrainTwice(FlowSpec):
     trainer.test(system, dataloaders = es_dl)
     es_results = system.test_results
 
-    acc_diff = None
+    acc_diff = np.abs(en_results.get('acc') - es_results.get('acc'))
     # =============================
     # FILL ME OUT
     # 
@@ -163,7 +168,9 @@ class JustTrainTwice(FlowSpec):
 
   @step
   def join(self, inputs):
-    index = None
+    all_ac = [input.acc_diff for input in inputs]
+    index = np.argmin(all_ac)
+    print(f'all_ac {all_ac}')
     # =============================
     # FILL ME OUT
     # 
